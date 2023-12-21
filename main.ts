@@ -29,22 +29,22 @@ const useQueue = <T extends Resolvers>({
           `No resolver defined for job type "${job.type.toString()}"`
         );
       new Promise(async (resolve) => {
-        let res: any;
         if ("params" in job) {
-          res = await resolver(job.params);
-
+          const res = await resolver(job.params);
           const data = {
             type: job.type,
             params: job.params,
             result: res,
           } as Extract<Parameters<OnSuccess<T>>[0], { params: any }>;
           onSuccess(data);
-        } else res = await resolver(undefined);
-        const data = {
-          type: job.type,
-          result: res,
-        } as Extract<Parameters<OnSuccess<T>>[0], { params: never }>;
-        onSuccess(data);
+        } else {
+          const res = await resolver(undefined);
+          const data = {
+            type: job.type,
+            result: res,
+          } as Extract<Parameters<OnSuccess<T>>[0], { params: never }>;
+          onSuccess(data);
+        }
         resolve(null);
       })
         .catch((error) => {
@@ -60,7 +60,7 @@ const useQueue = <T extends Resolvers>({
           jobs.splice(index, 1);
           currentIndex--;
           if (jobs.length) return new Promise(() => process());
-          onCleared();
+          return onCleared();
         });
     }
   };
@@ -95,19 +95,3 @@ const useQueue = <T extends Resolvers>({
     filterJobs,
   };
 };
-
-const { addJobs } = useQueue({
-  resolvers: {
-    UPLOAD: (file: File) => console.log(file),
-  } as const,
-  onSuccess(data) {
-    if(data.type === 'UPLOAD') {
-      console.log(`File ${data.params.name} uploaded successfully.`)
-    }
-  },
-  onError(data) {
-    if(data.type === 'UPLOAD') {
-      console.log(`File ${data.params.name} could not be uploaded.`)
-    }
-  }
-});
